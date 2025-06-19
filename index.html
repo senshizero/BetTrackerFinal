@@ -1,0 +1,217 @@
+<!-- Bet Tracker Static Site -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bet Tracker final</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+</head>
+<body>
+  <h1>🎲 Bet Tracker</h1>
+
+  <section id="add-player">
+    <input id="player-name" placeholder="Enter new player name" />
+    <button onclick="addPlayer()">Add Player</button>
+  </section>
+
+  <section id="transaction">
+    <label for="winner">Winner:</label>
+    <select id="winner"></select>
+    <label for="loser">Loser:</label>
+    <select id="loser"></select>
+    <label for="amount">Amount (₹):</label>
+    <input id="amount" type="number" placeholder="Enter amount ₹" />
+    <button onclick="addTransaction()">Record Transaction</button>
+  </section>
+
+  <h2>💳 Debt Table</h2>
+  <table id="debt-table" border="1">
+    <thead>
+      <tr>
+        <th>From \ To</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h2>📝 Transaction Log</h2>
+  <table border="1" id="log-table">
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>From</th>
+        <th>To</th>
+        <th>Amount (₹)</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <button onclick="pushToSheet()">Push to Google Sheet</button>
+
+  <h2>📜 Historical Records (from Google Sheet)</h2>
+  <table border="1" id="history-table">
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>From</th>
+        <th>To</th>
+        <th>Amount</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <br />
+  <a href="bets.html">Go to Bet-wise Entries ↗️</a>
+
+  <script>
+    const PIN = "9211";
+    const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTwHNRhIUYXAfSuBKkk6eZG0fkT4F4oGLwKHUBilhUjc2j7-QhEGbfqEy10XTygJ7XloSUhTgE6EABG/pub?output=csv";
+    const SHEET_POST_URL = "https://script.google.com/macros/s/AKfycbxVroFD44BF62p2lIHKFornNhLmkIg6gnvqMuDt-zlQeSCO8cGGccriIAEkFIWtd4Tozg/exec";
+
+    let players = JSON.parse(localStorage.getItem("players")) || ["Akash", "Negi", "Aabu", "Prem"];
+    let debts = JSON.parse(localStorage.getItem("debts")) || {};
+    let logs = JSON.parse(localStorage.getItem("logs")) || [];
+
+    players.forEach(p => {
+      debts[p] = debts[p] || {};
+      players.forEach(q => {
+        if (p !== q) debts[p][q] = debts[p][q] || 0;
+      });
+    });
+
+    function saveAll() {
+      localStorage.setItem("players", JSON.stringify(players));
+      localStorage.setItem("debts", JSON.stringify(debts));
+      localStorage.setItem("logs", JSON.stringify(logs));
+    }
+
+    function addPlayer() {
+      const name = document.getElementById("player-name").value.trim();
+      if (!name || players.includes(name)) return;
+      players.push(name);
+      players.forEach(p => {
+        debts[p] = debts[p] || {};
+        players.forEach(other => {
+          if (p !== other) debts[p][other] = debts[p][other] || 0;
+        });
+      });
+      saveAll();
+      renderUI();
+      document.getElementById("player-name").value = "";
+    }
+
+    function renderUI() {
+      const winSel = document.getElementById("winner");
+      const loseSel = document.getElementById("loser");
+      const debtBody = document.querySelector("#debt-table tbody");
+      const logBody = document.querySelector("#log-table tbody");
+
+      winSel.innerHTML = loseSel.innerHTML = "";
+      players.forEach(name => {
+        winSel.innerHTML += `<option value="${name}">${name}</option>`;
+        loseSel.innerHTML += `<option value="${name}">${name}</option>`;
+      });
+
+      const headerRow = document.querySelector("#debt-table thead tr");
+      headerRow.innerHTML = "<th>From \\ To</th>" + players.map(p => `<th>To: ${p}</th>`).join("");
+
+      debtBody.innerHTML = players.map(p => {
+        return `<tr><td>From: ${p}</td>` + players.map(q => `<td>${p === q ? '-' : debts[p][q]}</td>`).join("") + "</tr>";
+      }).join("");
+
+      logBody.innerHTML = logs.map(log => {
+        return `<tr>
+          <td>${new Date(log.time).toLocaleString()}</td>
+          <td>${log.loser}</td>
+          <td>${log.winner}</td>
+          <td>₹${log.amount}</td>
+        </tr>`;
+      }).reverse().join("");
+
+      saveAll();
+    }
+
+    function promptPin(message) {
+      const input = document.createElement("input");
+      input.type = "number";
+      input.inputMode = "numeric";
+      input.placeholder = message || "Enter PIN";
+      input.style.position = "fixed";
+      input.style.top = "50%";
+      input.style.left = "50%";
+      input.style.transform = "translate(-50%, -50%)";
+      input.style.zIndex = 9999;
+      input.style.fontSize = "24px";
+      input.style.padding = "10px";
+      input.setAttribute("pattern", "\\d*");
+      document.body.appendChild(input);
+      input.focus();
+      return new Promise(resolve => {
+        input.addEventListener("keydown", function handler(e) {
+          if (e.key === "Enter") {
+            const value = input.value;
+            document.body.removeChild(input);
+            resolve(value);
+          }
+        });
+      });
+    }
+
+    async function addTransaction() {
+      const winner = document.getElementById("winner").value;
+      const loser = document.getElementById("loser").value;
+      const amount = parseFloat(document.getElementById("amount").value);
+
+      const entered = await promptPin("Enter PIN to confirm transaction:");
+      if (entered !== PIN) {
+        alert("Wrong PIN");
+        return;
+      }
+
+      if (!winner || !loser || winner === loser || isNaN(amount) || amount <= 0) return;
+
+      debts[loser][winner] += amount;
+      logs.push({ winner, loser, amount, time: Date.now() });
+      saveAll();
+      renderUI();
+      document.getElementById("amount").value = "";
+    }
+
+    function fetchSheetData() {
+      Papa.parse(SHEET_URL, {
+        download: true,
+        header: true,
+        complete: function(results) {
+          const historyTable = document.querySelector("#history-table tbody");
+          historyTable.innerHTML = results.data.map(row => {
+            return `<tr>
+              <td>${row.Time}</td>
+              <td>${row.From}</td>
+              <td>${row.To}</td>
+              <td>${row.Amount}</td>
+            </tr>`;
+          }).join("");
+        }
+      });
+    }
+
+    window.onload = () => {
+      renderUI();
+      fetchSheetData();
+    };
+
+    window.onbeforeunload = function(e) {
+      e.preventDefault();
+      e.returnValue = 'Are you sure you want to reload?';
+    }
+
+    document.addEventListener('gesturestart', function(e) {
+      e.preventDefault();
+    });
+  </script>
+</body>
+</html>
