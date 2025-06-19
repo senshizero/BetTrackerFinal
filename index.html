@@ -161,25 +161,49 @@
       });
     }
 
-    async function addTransaction() {
-      const winner = document.getElementById("winner").value;
-      const loser = document.getElementById("loser").value;
-      const amount = parseFloat(document.getElementById("amount").value);
+    function rebalanceDebts() {
+  for (let i = 0; i < players.length; i++) {
+    for (let j = 0; j < players.length; j++) {
+      if (i === j) continue;
+      const p1 = players[i];
+      const p2 = players[j];
 
-      const entered = await promptPin("Enter PIN to confirm transaction:");
-      if (entered !== PIN) {
-        alert("Wrong PIN");
-        return;
+      const owe1 = debts[p1][p2] || 0;
+      const owe2 = debts[p2][p1] || 0;
+
+      if (owe1 > owe2) {
+        debts[p1][p2] = +(owe1 - owe2).toFixed(2);
+        debts[p2][p1] = 0;
+      } else {
+        debts[p2][p1] = +(owe2 - owe1).toFixed(2);
+        debts[p1][p2] = 0;
       }
-
-      if (!winner || !loser || winner === loser || isNaN(amount) || amount <= 0) return;
-
-      debts[loser][winner] += amount;
-      logs.push({ winner, loser, amount, time: Date.now() });
-      saveAll();
-      renderUI();
-      document.getElementById("amount").value = "";
     }
+  }
+    }
+
+async function addTransaction() {
+  const winner = document.getElementById("winner").value;
+  const loser = document.getElementById("loser").value;
+  const amount = parseFloat(document.getElementById("amount").value);
+
+  const entered = await promptPin("Enter PIN to confirm transaction:");
+  if (entered !== PIN) {
+    alert("Wrong PIN");
+    return;
+  }
+
+  if (!winner || !loser || winner === loser || isNaN(amount) || amount <= 0) return;
+
+  debts[loser][winner] += amount;
+
+  rebalanceDebts(); // 🔄 Balance mutual debts after transaction
+
+  logs.push({ winner, loser, amount, time: Date.now() });
+  saveAll();
+  renderUI();
+  document.getElementById("amount").value = "";
+}
 
     function fetchSheetData() {
       Papa.parse(SHEET_URL, {
