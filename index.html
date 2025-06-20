@@ -1,606 +1,621 @@
-<!-- Bet Tracker Static Site -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Bet Tracker final</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <link rel="stylesheet" href="style.css" />
-  
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bet Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.2);
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .players-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .player-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #eee;
+            text-align: center;
+        }
+
+        .debt-summary {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .debt-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .debt-item:last-child {
+            border-bottom: none;
+        }
+
+        .amount-positive {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .amount-negative {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .logs {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .log-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .log-item.deleted {
+            opacity: 0.5;
+            border-left-color: #dc3545;
+        }
+
+        .log-details {
+            flex: 1;
+        }
+
+        .log-time {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .log-transaction {
+            font-weight: bold;
+            margin: 5px 0;
+        }
+
+        .log-game {
+            font-size: 0.9em;
+            color: #667eea;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+            width: auto;
+        }
+
+        .delete-btn:hover {
+            background: #c82333;
+        }
+
+        .status {
+            text-align: center;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .log-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .delete-btn {
+                margin-top: 10px;
+                align-self: flex-end;
+            }
+        }
+    </style>
 </head>
 <body>
-  <h1>🎲 Bet Tracker</h1>
-
-  <h2>📊 Current Session Summary</h2>
-  <button onclick="copySessionSummary()">📋 Copy to Clipboard</button>
-<table border="1" id="session-summary">
-  <thead>
-    <tr>
-      <th>From</th>
-      <th>To</th>
-      <th>Amount (₹)</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
-
-  
-  <button onclick="nextGame()">➕ Next Game</button>
-  <section id="transaction">
-    <label for="winner">Winner:</label>
-    <select id="winner"></select>
-    <label for="loser">Loser:</label>
-    <select id="loser"></select>
-    <label for="amount">Amount (₹):</label>
-    <input id="amount" type="number" placeholder="Enter amount ₹" />
-    <button onclick="addTransaction()">Record Transaction</button>
-  </section>
-  
-  <h2>💳 Debt Table</h2>
-  <table id="debt-table" border="1">
-    <thead>
-      <tr>
-        <th>From \ To</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-  <h2>📝 Transaction Log</h2>
-  <table border="1" id="log-table">
-    <thead>
-      <tr>
-        <th>Time</th>
-        <th>From</th>
-        <th>To</th>
-        <th>Amount (₹)</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-<section id="add-player">
-    <input id="player-name" placeholder="Enter new player name" />
-    <button onclick="addPlayer()">Add Player</button>
-</section>
-  <h2>📊 Historical Summary</h2>
-<table border="1" id="historical-summary">
-  <thead>
-    <tr>
-      <th>Player</th>
-      <th>Net Balance (₹)</th>
-      <th>Total Debt (₹)</th>
-      <th>Owes To</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
-
-  <h2>📜 Historical Records (from Google Sheet)</h2>
-  <table border="1" id="history-table">
-    <thead>
-      <tr>
-        <th>Time</th>
-        <th>From</th>
-        <th>To</th>
-        <th>Amount</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-  <br />
-  <a href="https://docs.google.com/spreadsheets/d/1UKp4hyPzIPAi1eQPRWaNB4Qvl-f69x6Im50BLj6pevY/edit?usp=drivesdk">Go to Sheet ↗️</a>
-
-  <script>
-    let currentGame = JSON.parse(localStorage.getItem("currentGame")) || 1;
-    
-    const PIN = "9211";
-    const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTwHNRhIUYXAfSuBKkk6eZG0fkT4F4oGLwKHUBilhUjc2j7-QhEGbfqEy10XTygJ7XloSUhTgE6EABG/pub?output=csv";
-    const SHEET_POST_URL = "https://script.google.com/macros/s/AKfycbxVroFD44BF62p2lIHKFornNhLmkIg6gnvqMuDt-zlQeSCO8cGGccriIAEkFIWtd4Tozg/exec";
-
-    let players = JSON.parse(localStorage.getItem("players")) || ["Akash", "Negi", "Prem"];
-    let debts = JSON.parse(localStorage.getItem("debts")) || {};
-    let logs = JSON.parse(localStorage.getItem("logs")) || [];
-
-    players.forEach(p => {
-      debts[p] = debts[p] || {};
-      players.forEach(q => {
-        if (p !== q) debts[p][q] = debts[p][q] || 0;
-      });
-    });
-
-
-    function copySessionSummary() {
-  const rows = document.querySelectorAll("#session-summary tbody tr");
-  if (!rows.length) return alert("No session summary to copy.");
-
-  const now = new Date();
-  const timeString = now.toLocaleString(); // human-readable timestamp
-
-  let copyData = "";
-
-  rows.forEach(row => {
-    const cells = row.querySelectorAll("td");
-    if (cells.length !== 3) return;
-
-    const from = cells[0].textContent.trim();
-    const to = cells[1].textContent.trim();
-    const amount = cells[2].textContent.trim();
-
-    copyData += `${timeString}\t${from}\t${to}\t${amount}\n`;
-  });
-
-  navigator.clipboard.writeText(copyData).then(() => {
-    alert("Copied to clipboard. Redirecting to Google Sheet...");
-    window.location.href = "https://docs.google.com/spreadsheets/d/1UKp4hyPzIPAi1eQPRWaNB4Qvl-f69x6Im50BLj6pevY/edit?usp=drivesdk";
-  }).catch(err => {
-    alert("Failed to copy: " + err);
-  });
-    }
-
-    
-    
-    function nextGame() {
-  currentGame++;
-  saveAll();
-  alert("Started Game " + currentGame);
-  renderUI();
-    }
-
-    function saveAll() {
-  localStorage.setItem("players", JSON.stringify(players));
-  localStorage.setItem("debts", JSON.stringify(debts));
-  localStorage.setItem("logs", JSON.stringify(logs));
-  localStorage.setItem("currentGame", JSON.stringify(currentGame));
-    }
-
-    function addPlayer() {
-      const name = document.getElementById("player-name").value.trim();
-      if (!name || players.includes(name)) return;
-      players.push(name);
-      players.forEach(p => {
-        debts[p] = debts[p] || {};
-        players.forEach(other => {
-          if (p !== other) debts[p][other] = debts[p][other] || 0;
-        });
-      });
-      saveAll();
-      renderUI();
-      document.getElementById("player-name").value = "";
-    }
-
-    async function deleteTransaction(index) {
-  const entered = await promptPin("Enter PIN to delete transaction:");
-  if (entered !== PIN) {
-    alert("Wrong PIN");
-    return;
-  }
-
-  const tx = logs[index];
-  if (!tx || tx.deleted) return alert("Transaction not found or already deleted.");
-
-  // Perform reverse transaction
-  debts[tx.winner][tx.loser] += tx.amount;
-
-  // Mark as deleted
-  logs[index].deleted = true;
-
-  rebalanceDebts();
-  optimizeTriangularDebts();
-  saveAll();
-  renderUI();
-    }
-
-
-    function renderSessionSummary() {
-  const sessionDebts = {};
-  const sessionPlayers = new Set();
-
-  logs.forEach(log => {
-    if (log.deleted) return;
-
-    const from = log.loser;
-    const to = log.winner;
-    const amount = log.amount;
-
-    sessionPlayers.add(from);
-    sessionPlayers.add(to);
-
-    sessionDebts[from] = sessionDebts[from] || {};
-    sessionDebts[to] = sessionDebts[to] || {};
-
-    sessionDebts[from][to] = (sessionDebts[from][to] || 0) + amount;
-  });
-
-  const arr = Array.from(sessionPlayers);
-
-  // Rebalance
-  for (let i = 0; i < arr.length; i++) {
-    for (let j = 0; j < arr.length; j++) {
-      if (i === j) continue;
-      const A = arr[i], B = arr[j];
-      const ab = sessionDebts[A]?.[B] || 0;
-      const ba = sessionDebts[B]?.[A] || 0;
-
-      if (ab > ba) {
-        sessionDebts[A][B] = +(ab - ba).toFixed(2);
-        sessionDebts[B][A] = 0;
-      } else {
-        sessionDebts[B][A] = +(ba - ab).toFixed(2);
-        sessionDebts[A][B] = 0;
-      }
-    }
-  }
-
-  // Transitive debt optimization
-  let changed = true;
-while (changed) {
-  changed = false;
-
-  for (let i = 0; i < arr.length; i++) {
-    for (let j = 0; j < arr.length; j++) {
-      for (let k = 0; k < arr.length; k++) {
-        if (i === j || j === k || i === k) continue;
-
-        const A = arr[i], B = arr[j], C = arr[k];
-        const ab = sessionDebts[A]?.[B] || 0;
-        const bc = sessionDebts[B]?.[C] || 0;
-
-        if (ab > 0 && bc > 0) {
-          const transfer = Math.min(ab, bc);
-          sessionDebts[A][B] -= transfer;
-          sessionDebts[B][C] -= transfer;
-          sessionDebts[A][C] = (sessionDebts[A][C] || 0) + transfer;
-
-          if (sessionDebts[A][B] < 0.01) sessionDebts[A][B] = 0;
-          if (sessionDebts[B][C] < 0.01) sessionDebts[B][C] = 0;
-
-          changed = true; // something collapsed, keep optimizing
-        }
-      }
-    }
-  }
-}
-
-  // Render flat "From / To / Amount" rows
-  const summaryBody = document.querySelector("#session-summary tbody");
-
-  const rows = [];
-
-  arr.forEach(from => {
-    arr.forEach(to => {
-      if (from === to) return;
-      const amt = +(sessionDebts[from]?.[to] || 0);
-      if (amt > 0.01) {
-        rows.push(`<tr>
-          <td>${from}</td>
-          <td>${to}</td>
-          <td>₹${amt.toFixed(2)}</td>
-        </tr>`);
-      }
-    });
-  });
-
-  summaryBody.innerHTML = rows.length > 0
-    ? rows.join("")
-    : `<tr><td colspan="3">No debts recorded in this session.</td></tr>`;
-    }
-
-    
-    function renderUI() {
-      const winSel = document.getElementById("winner");
-      const loseSel = document.getElementById("loser");
-      const debtBody = document.querySelector("#debt-table tbody");
-      const logBody = document.querySelector("#log-table tbody");
-
-      winSel.innerHTML = loseSel.innerHTML = "";
-      players.forEach(name => {
-        winSel.innerHTML += `<option value="${name}">${name}</option>`;
-        loseSel.innerHTML += `<option value="${name}">${name}</option>`;
-      });
-
-      const headerRow = document.querySelector("#debt-table thead tr");
-      headerRow.innerHTML = "<th>From \\ To</th>" + players.map(p => `<th>To: ${p}</th>`).join("");
-
-      let tableRows = players.map(p => {
-  return `<tr><td>From: ${p}</td>` + players.map(q => `<td>${p === q ? '-' : debts[p][q]}</td>`).join("") + "</tr>";
-});
-
-// Calculate net balance for each player
-let balances = players.map(player => {
-  let totalIn = 0, totalOut = 0;
-  players.forEach(other => {
-    if (player !== other) {
-      totalIn += debts[other][player];   // Money others owe this player
-      totalOut += debts[player][other];  // Money this player owes others
-    }
-  });
-  let net = +(totalIn - totalOut).toFixed(2);
-  let sign = net > 0 ? "+" : net < 0 ? "-" : "0";
-  return { player, net, sign };
-});
-
-// Add summary row
-const balanceRow = `<tr><td><strong>Net Balance</strong></td>` +
-  balances.map(b => {
-    let bgColor = b.net > 0 ? "#d4edda" : b.net < 0 ? "#f8d7da" : "transparent";
-    let color = b.net > 0 ? "#155724" : b.net < 0 ? "#721c24" : "#333";
-    let display = b.net === 0 ? "0" : `${b.sign}₹${Math.abs(b.net)}`;
-    return `<td style="background-color: ${bgColor}; color: ${color}; font-weight: bold;">${display}</td>`;
-  }).join("") +
-  `</tr>`;
-
-debtBody.innerHTML = tableRows.join("") + balanceRow;
-
-      let grouped = {};
-
-logs.forEach((log, i) => {
-  const game = log.game || 1;
-  grouped[game] = grouped[game] || [];
-  grouped[game].push({ ...log, index: i });
-});
-
-logBody.innerHTML = Object.keys(grouped).sort((a,b) => b - a).map(gameNum => {
-  const rows = grouped[gameNum].map(log => {
-    const isDeleted = log.deleted;
-    return `<tr style="${isDeleted ? 'text-decoration: line-through; opacity: 0.5;' : ''}">
-      <td>${new Date(log.time).toLocaleString()}</td>
-      <td>${log.loser}</td>
-      <td>${log.winner}</td>
-      <td>₹${log.amount}</td>
-      <td>
-        ${isDeleted ? '—' : `<button onclick="deleteTransaction(${log.index})">❌ Delete</button>`}
-      </td>
-    </tr>`;
-  }).join("");
-
-  return `<tr><td colspan="5" style="background: #dfe6e9; font-weight: bold; text-align: left;">🎮 Game ${gameNum}</td></tr>` + rows;
-}).join("");
-      saveAll();
-      renderSessionSummary();
-    }
-
-    function promptPin(message) {
-      const input = document.createElement("input");
-      input.type = "number";
-      input.inputMode = "numeric";
-      input.placeholder = message || "Enter PIN";
-      input.style.position = "fixed";
-      input.style.top = "50%";
-      input.style.left = "50%";
-      input.style.transform = "translate(-50%, -50%)";
-      input.style.zIndex = 9999;
-      input.style.fontSize = "24px";
-      input.style.padding = "10px";
-      input.setAttribute("pattern", "\\d*");
-      document.body.appendChild(input);
-      input.focus();
-      return new Promise(resolve => {
-        input.addEventListener("keydown", function handler(e) {
-          if (e.key === "Enter") {
-            const value = input.value;
-            document.body.removeChild(input);
-            resolve(value);
-          }
-        });
-      });
-    }
-
-    function rebalanceDebts() {
-  for (let i = 0; i < players.length; i++) {
-    for (let j = 0; j < players.length; j++) {
-      if (i === j) continue;
-      const p1 = players[i];
-      const p2 = players[j];
-
-      const owe1 = debts[p1][p2] || 0;
-      const owe2 = debts[p2][p1] || 0;
-
-      if (owe1 > owe2) {
-        debts[p1][p2] = +(owe1 - owe2).toFixed(2);
-        debts[p2][p1] = 0;
-      } else {
-        debts[p2][p1] = +(owe2 - owe1).toFixed(2);
-        debts[p1][p2] = 0;
-      }
-    }
-  }
-    }
-  function optimizeTriangularDebts() {
-  for (let i = 0; i < players.length; i++) {
-    for (let j = 0; j < players.length; j++) {
-      for (let k = 0; k < players.length; k++) {
-        if (i === j || j === k || i === k) continue;
-
-        const A = players[i]; // Prem
-        const B = players[j]; // Akash
-        const C = players[k]; // Negi
-
-        const ab = debts[A][B] || 0; // A → B
-        const bc = debts[B][C] || 0; // B → C
-
-        if (ab > 0 && bc > 0) {
-          const transfer = Math.min(ab, bc);
-          debts[A][B] -= transfer;
-          debts[B][C] -= transfer;
-          debts[A][C] += transfer;
-
-          // Clean near-zero floating point leftovers
-          if (debts[A][B] < 0.01) debts[A][B] = 0;
-          if (debts[B][C] < 0.01) debts[B][C] = 0;
-        }
-      }
-    }
-  }
-  }
-
-  async function addTransaction() {
-  const winner = document.getElementById("winner").value;
-  const loser = document.getElementById("loser").value;
-  const amount = parseFloat(document.getElementById("amount").value);
-
-  const entered = await promptPin("Enter PIN to confirm transaction:");
-  if (entered !== PIN) {
-    alert("Wrong PIN");
-    return;
-  }
-
-  if (!winner || !loser || winner === loser || isNaN(amount) || amount <= 0) return;
-
-  debts[loser][winner] += amount;
-
-  rebalanceDebts();          // Step 1: net direct balances
-  optimizeTriangularDebts(); // Step 2: collapse chain debts
-
-  logs.push({ winner, loser, amount, time: Date.now(), game: currentGame });
-  saveAll();
-  renderUI();
-  document.getElementById("amount").value = "";
-  }
-    
-    function fetchSheetData() {
-  Papa.parse(SHEET_URL, {
-    download: true,
-    header: true,
-    complete: function(results) {
-      // Populate history table
-      const historyTable = document.querySelector("#history-table tbody");
-      historyTable.innerHTML = results.data.map(row => {
-        return `<tr>
-          <td>${row.Time}</td>
-          <td>${row.From}</td>
-          <td>${row.To}</td>
-          <td>${row.Amount}</td>
-        </tr>`;
-      }).join("");
-
-      // STEP 1: Build debts matrix
-      const histPlayers = new Set();
-      const histDebts = {};
-
-      results.data.forEach(row => {
-        const from = row.From?.trim();
-        const to = row.To?.trim();
-        const amount = parseFloat(row.Amount);
-
-        if (!from || !to || isNaN(amount)) return;
-
-        histPlayers.add(from);
-        histPlayers.add(to);
-
-        histDebts[from] = histDebts[from] || {};
-        histDebts[to] = histDebts[to] || {};
-
-        histDebts[from][to] = (histDebts[from][to] || 0) + amount;
-      });
-
-      const playersArr = Array.from(histPlayers);
-
-      // STEP 2: Rebalance direct debts
-      for (let i = 0; i < playersArr.length; i++) {
-        for (let j = 0; j < playersArr.length; j++) {
-          if (i === j) continue;
-          const A = playersArr[i];
-          const B = playersArr[j];
-
-          const ab = histDebts[A][B] || 0;
-          const ba = histDebts[B][A] || 0;
-
-          if (ab > ba) {
-            histDebts[A][B] = +(ab - ba).toFixed(2);
-            histDebts[B][A] = 0;
-          } else {
-            histDebts[B][A] = +(ba - ab).toFixed(2);
-            histDebts[A][B] = 0;
-          }
-        }
-      }
-
-      // STEP 3: Apply transitive optimization
-      for (let i = 0; i < playersArr.length; i++) {
-        for (let j = 0; j < playersArr.length; j++) {
-          for (let k = 0; k < playersArr.length; k++) {
-            if (i === j || j === k || i === k) continue;
-
-            const A = playersArr[i];
-            const B = playersArr[j];
-            const C = playersArr[k];
-
-            const ab = histDebts[A][B] || 0;
-            const bc = histDebts[B][C] || 0;
-
-            if (ab > 0 && bc > 0) {
-              const transfer = Math.min(ab, bc);
-              histDebts[A][B] -= transfer;
-              histDebts[B][C] -= transfer;
-              histDebts[A][C] = (histDebts[A][C] || 0) + transfer;
-
-              if (histDebts[A][B] < 0.01) histDebts[A][B] = 0;
-              if (histDebts[B][C] < 0.01) histDebts[B][C] = 0;
+    <div class="container">
+        <h1>🎲 Bet Tracker</h1>
+        
+        <div id="status" class="status loading">Connecting to Firebase...</div>
+
+        <div class="section">
+            <h2>👥 Players</h2>
+            <div class="form-group">
+                <label for="playerName">Add New Player:</label>
+                <input type="text" id="playerName" placeholder="Enter player name">
+            </div>
+            <button onclick="addPlayer()">Add Player</button>
+            <div id="playersDisplay" class="players-grid"></div>
+        </div>
+
+        <div class="section">
+            <h2>💰 Record Transaction</h2>
+            <div class="form-group">
+                <label for="fromPlayer">From:</label>
+                <select id="fromPlayer"></select>
+            </div>
+            <div class="form-group">
+                <label for="toPlayer">To:</label>
+                <select id="toPlayer"></select>
+            </div>
+            <div class="form-group">
+                <label for="amount">Amount:</label>
+                <input type="number" id="amount" placeholder="Enter amount" min="0" step="0.01">
+            </div>
+            <button onclick="recordTransaction()">Record Transaction</button>
+        </div>
+
+        <div class="section">
+            <h2>📊 Current Debts</h2>
+            <div id="debtsDisplay" class="debt-summary"></div>
+        </div>
+
+        <div class="section">
+            <h2>📋 Transaction History</h2>
+            <div class="form-group">
+                <label for="gameFilter">Filter by Game:</label>
+                <select id="gameFilter" onchange="displayLogs()">
+                    <option value="all">All Games</option>
+                </select>
+            </div>
+            <div id="logsDisplay" class="logs"></div>
+        </div>
+
+        <div class="section">
+            <h2>🎮 Game Management</h2>
+            <div class="form-group">
+                <label>Current Game: <span id="currentGameDisplay">1</span></label>
+            </div>
+            <button onclick="startNewGame()">Start New Game</button>
+            <button onclick="clearAllData()" style="background: #dc3545; margin-top: 10px;">Clear All Data</button>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+        import { getDatabase, ref, set, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAWCmj2UlvvRj445qBlP-OwNb-yTtZqruw",
+            authDomain: "betbalance-28d26.firebaseapp.com",
+            databaseURL: "https://betbalance-28d26-default-rtdb.firebaseio.com/",
+            projectId: "betbalance-28d26",
+            storageBucket: "betbalance-28d26.firebasestorage.app",
+            messagingSenderId: "677802256822",
+            appId: "1:677802256822:web:65f6d6fcfa8fdb8825f917"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        const sessionRef = ref(database, 'sessionData');
+
+        // Global variables
+        let sessionData = {
+            players: [],
+            debts: {},
+            logs: {},
+            currentGame: 1
+        };
+
+        // Initialize the app
+        function initializeApp() {
+            showStatus('Connecting to Firebase...', 'loading');
+            
+            try {
+                // Listen for data changes
+                onValue(sessionRef, (snapshot) => {
+                    try {
+                        const data = snapshot.val();
+                        if (data) {
+                            sessionData = data;
+                        } else {
+                            // Initialize with default data if none exists
+                            sessionData = {
+                                players: [],
+                                debts: {},
+                                logs: {},
+                                currentGame: 1
+                            };
+                            saveToFirebase();
+                        }
+                        updateUI();
+                        showStatus('Connected to Firebase', 'success');
+                        setTimeout(() => hideStatus(), 2000);
+                    } catch (error) {
+                        console.error('Error processing Firebase data:', error);
+                        showStatus('Error processing data: ' + error.message, 'error');
+                    }
+                }, (error) => {
+                    console.error('Firebase connection error:', error);
+                    showStatus('Firebase connection failed: ' + error.message, 'error');
+                });
+            } catch (error) {
+                console.error('Firebase initialization error:', error);
+                showStatus('Firebase initialization failed: ' + error.message, 'error');
             }
-          }
         }
-      }
 
-      // STEP 4: Calculate net summary
-      const netSummary = {};
-      const owesMap = {};
+        // Save data to Firebase
+        function saveToFirebase() {
+            if (!sessionData) {
+                console.error('No session data to save');
+                return;
+            }
+            
+            set(sessionRef, sessionData)
+                .then(() => {
+                    console.log('Data saved to Firebase successfully');
+                })
+                .catch((error) => {
+                    console.error('Error saving to Firebase:', error);
+                    showStatus('Error saving data: ' + error.message, 'error');
+                });
+        }
 
-      playersArr.forEach(p => {
-        netSummary[p] = { in: 0, out: 0 };
-        owesMap[p] = {};
-      });
+        // Show status message
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+        }
 
-      playersArr.forEach(from => {
-        playersArr.forEach(to => {
-          if (from === to) return;
-          const amt = histDebts[from][to] || 0;
-          if (amt > 0) {
-            netSummary[from].out += amt;
-            netSummary[to].in += amt;
-            owesMap[from][to] = amt;
-          }
-        });
-      });
+        // Hide status message
+        function hideStatus() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.style.display = 'none';
+        }
 
-      // STEP 5: Render
-      const summaryBody = document.querySelector("#historical-summary tbody");
-      summaryBody.innerHTML = playersArr.map(player => {
-        const net = +(netSummary[player].in - netSummary[player].out).toFixed(2);
-        const owes = owesMap[player] || {};
-        const debtList = Object.entries(owes).map(([to, amt]) => `${to} (₹${amt})`).join(", ");
+        // Add player
+        window.addPlayer = function() {
+            const playerName = document.getElementById('playerName').value.trim();
+            if (!playerName) {
+                showStatus('Please enter a player name', 'error');
+                return;
+            }
 
-        const bgColor = net > 0 ? "#d4edda" : net < 0 ? "#f8d7da" : "transparent";
-        const color = net > 0 ? "#155724" : net < 0 ? "#721c24" : "#333";
+            if (sessionData.players.includes(playerName)) {
+                showStatus('Player already exists', 'error');
+                return;
+            }
 
-        return `<tr>
-          <td>${player}</td>
-          <td style="background-color: ${bgColor}; color: ${color}; font-weight: bold;">
-            ${net === 0 ? '₹0' : `${net > 0 ? '+' : '-'}₹${Math.abs(net)}`}
-          </td>
-          <td>₹${netSummary[player].out.toFixed(2)}</td>
-          <td>${debtList || '—'}</td>
-        </tr>`;
-      }).join("");
-    }
-  });
-    }
+            try {
+                sessionData.players.push(playerName);
+                
+                // Initialize debts object for the new player
+                if (!sessionData.debts[playerName]) {
+                    sessionData.debts[playerName] = {};
+                }
+                
+                // Initialize debts for existing players
+                sessionData.players.forEach(player => {
+                    if (player !== playerName) {
+                        if (!sessionData.debts[playerName][player]) {
+                            sessionData.debts[playerName][player] = 0;
+                        }
+                        if (!sessionData.debts[player]) {
+                            sessionData.debts[player] = {};
+                        }
+                        if (!sessionData.debts[player][playerName]) {
+                            sessionData.debts[player][playerName] = 0;
+                        }
+                    }
+                });
 
-    window.onload = () => {
-      renderUI();
-      fetchSheetData();
-    };
+                document.getElementById('playerName').value = '';
+                saveToFirebase();
+                showStatus('Player added successfully', 'success');
+                setTimeout(() => hideStatus(), 2000);
+            } catch (error) {
+                console.error('Error adding player:', error);
+                showStatus('Error adding player: ' + error.message, 'error');
+            }
+        }
 
-    window.onbeforeunload = function(e) {
-      e.preventDefault();
-      e.returnValue = 'Are you sure you want to reload?';
-    }
+        // Record transaction
+        window.recordTransaction = function() {
+            const fromPlayer = document.getElementById('fromPlayer').value;
+            const toPlayer = document.getElementById('toPlayer').value;
+            const amount = parseFloat(document.getElementById('amount').value);
 
-    document.addEventListener('gesturestart', function(e) {
-      e.preventDefault();
-    });
-  </script>
-</body>
-</html>
+            if (!fromPlayer || !toPlayer) {
+                showStatus('Please select both players', 'error');
+                return;
+            }
+
+            if (fromPlayer === toPlayer) {
+                showStatus('Cannot transfer to the same player', 'error');
+                return;
+            }
+
+            if (!amount || amount <= 0) {
+                showStatus('Please enter a valid amount', 'error');
+                return;
+            }
+
+            // Update debts
+            sessionData.debts[fromPlayer][toPlayer] += amount;
+            sessionData.debts[toPlayer][fromPlayer] -= amount;
+
+            // Create log entry
+            const logId = 'log' + Date.now();
+            sessionData.logs[logId] = {
+                time: new Date().toISOString(),
+                from: fromPlayer,
+                to: toPlayer,
+                amount: amount,
+                game: sessionData.currentGame,
+                deleted: false
+            };
+
+            // Clear form
+            document.getElementById('amount').value = '';
+            
+            saveToFirebase();
+            showStatus('Transaction recorded successfully', 'success');
+            setTimeout(() => hideStatus(), 2000);
+        }
+
+        // Delete transaction
+        window.deleteTransaction = function(logId) {
+            if (!confirm('Are you sure you want to delete this transaction?')) {
+                return;
+            }
+
+            const log = sessionData.logs[logId];
+            if (log && !log.deleted) {
+                // Reverse the debt changes
+                sessionData.debts[log.from][log.to] -= log.amount;
+                sessionData.debts[log.to][log.from] += log.amount;
+                
+                // Mark as deleted
+                sessionData.logs[logId].deleted = true;
+                
+                saveToFirebase();
+                showStatus('Transaction deleted successfully', 'success');
+                setTimeout(() => hideStatus(), 2000);
+            }
+        }
+
+        // Start new game
+        window.startNewGame = function() {
+            if (!confirm('Are you sure you want to start a new game? This will increment the game counter.')) {
+                return;
+            }
+
+            sessionData.currentGame += 1;
+            saveToFirebase();
+            showStatus('New game started', 'success');
+            setTimeout(() => hideStatus(), 2000);
+        }
+
+        // Clear all data
+        window.clearAllData = function() {
+            if (!confirm('Are you sure you want to clear ALL data? This cannot be undone!')) {
+                return;
+            }
+
+            sessionData = {
+                players: [],
+                debts: {},
+                logs: {},
+                currentGame: 1
+            };
+
+            saveToFirebase();
+            showStatus('All data cleared', 'success');
+            setTimeout(() => hideStatus(), 2000);
+        }
+
+        // Update UI elements
+        function updateUI() {
+            displayPlayers();
+            updatePlayerSelects();
+            displayDebts();
+            displayLogs();
+            updateGameFilter();
+            document.getElementById('currentGameDisplay').textContent = sessionData.currentGame;
+        }
+
+        // Display players
+        function displayPlayers() {
+            const playersDiv = document.getElementById('playersDisplay');
+            playersDiv.innerHTML = '';
+
+            sessionData.players.forEach(player => {
+                const playerCard = document.createElement('div');
+                playerCard.className = 'player-card';
+                playerCard.innerHTML = `<strong>${player}</strong>`;
+                playersDiv.appendChild(playerCard);
+            });
+        }
+
+        // Update player select dropdowns
+        function updatePlayerSelects() {
+            const fromSelect = document.getElementById('fromPlayer');
+            const toSelect = document.getElementById('toPlayer');
+            
+            fromSelect.innerHTML = '<option value="">Select player</option>';
+            toSelect.innerHTML = '<option value="">Select player</option>';
+
+            sessionData.players.forEach(player => {
+                fromSelect.innerHTML += `<option value="${player}">${player}</option>`;
+                toSelect.innerHTML += `<option value="${player}">${player}</option>`;
+            });
+        }
+
+        // Display debts
+        function displayDebts() {
+            const debtsDiv = document.getElementById('debtsDisplay');
+            debtsDiv.innerHTML = '';
+
+            const netDebts = {};
+            
+            // Calculate net debts
+            sessionData.players.forEach(player => {
+                netDebts[player] = 0;
+                Object.keys(sessionData.debts[player] || {}).forEach(otherPlayer => {
+                    netDebts[player] += sessionData.debts[player][otherPlayer];
+                });
+            });
+
+            // Display net debts
+            Object.keys(netDebts).forEach(player => {
+                if (netDebts[player] !== 0) {
+                    const debtItem = document.createElement('div');
+                    debtItem.className = 'debt-item';
+                    const amount = Math.abs(netDebts[player]);
+                    const status = netDebts[player] > 0 ? 'is owed' : 'owes';
+                    const amountClass = netDebts[player] > 0 ? 'amount-positive' : 'amount-negative';
+                    
+                    debtItem.innerHTML = `
+                        <span><strong>${player}</strong> ${status}</span>
+                        <span class="${amountClass}">₹${amount.toFixed(2)}</span>
+                    `;
+                    debtsDiv.appendChild(debtItem);
+                }
+            });
+
+            if (debtsDiv.innerHTML === '') {
+                debtsDiv.innerHTML = '<div class="debt-item"><span>No outstanding debts</span></div>';
+            }
+        }
+
+        // Display logs
+        window.displayLogs = function() {
+            const logsDiv = document.getElementById('logsDisplay');
+            co
