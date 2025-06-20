@@ -119,10 +119,30 @@
       const headerRow = document.querySelector("#debt-table thead tr");
       headerRow.innerHTML = "<th>From \\ To</th>" + players.map(p => `<th>To: ${p}</th>`).join("");
 
-      debtBody.innerHTML = players.map(p => {
-        return `<tr><td>From: ${p}</td>` + players.map(q => `<td>${p === q ? '-' : debts[p][q]}</td>`).join("") + "</tr>";
-      }).join("");
+      let tableRows = players.map(p => {
+  return `<tr><td>From: ${p}</td>` + players.map(q => `<td>${p === q ? '-' : debts[p][q]}</td>`).join("") + "</tr>";
+});
 
+// Calculate net balance for each player
+let balances = players.map(player => {
+  let totalIn = 0, totalOut = 0;
+  players.forEach(other => {
+    if (player !== other) {
+      totalIn += debts[other][player];   // Money others owe this player
+      totalOut += debts[player][other];  // Money this player owes others
+    }
+  });
+  let net = +(totalIn - totalOut).toFixed(2);
+  let sign = net > 0 ? "+" : net < 0 ? "-" : "0";
+  return { player, net, sign };
+});
+
+// Add summary row
+const balanceRow = `<tr><td><strong>Net Balance</strong></td>` +
+  balances.map(b => `<td><strong>${b.net === 0 ? '0' : `${b.sign}₹${Math.abs(b.net)}`}</strong></td>`).join("") +
+  `</tr>`;
+
+debtBody.innerHTML = tableRows.join("") + balanceRow;
       logBody.innerHTML = logs.map(log => {
         return `<tr>
           <td>${new Date(log.time).toLocaleString()}</td>
