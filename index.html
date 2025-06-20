@@ -11,11 +11,23 @@
 </head>
 <body>
   <h1>🎲 Bet Tracker</h1>
+  <div id="game-info" style="margin-bottom: 20px; font-size: 1.2rem;">
+  🎮 <strong>Game <span id="game-number">1</span></strong> – Running for <span id="game-timer">0s</span>
+  </div>
 
-  <section id="add-player">
-    <input id="player-name" placeholder="Enter new player name" />
-    <button onclick="addPlayer()">Add Player</button>
-  </section>
+  <h2>📊 Current Session Summary</h2>
+  <button onclick="copySessionSummary()">📋 Copy to Clipboard</button>
+<table border="1" id="session-summary">
+  <thead>
+    <tr>
+      <th>From</th>
+      <th>To</th>
+      <th>Amount (₹)</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+  
   <button onclick="nextGame()">➕ Next Game</button>
   <section id="transaction">
     <label for="winner">Winner:</label>
@@ -36,18 +48,7 @@
     </thead>
     <tbody></tbody>
   </table>
-<h2>📊 Current Session Summary</h2>
-  <button onclick="copySessionSummary()">📋 Copy to Clipboard</button>
-<table border="1" id="session-summary">
-  <thead>
-    <tr>
-      <th>From</th>
-      <th>To</th>
-      <th>Amount (₹)</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+
   <h2>📝 Transaction Log</h2>
   <table border="1" id="log-table">
     <thead>
@@ -62,6 +63,10 @@
     <tbody></tbody>
   </table>
 
+  <section id="add-player">
+    <input id="player-name" placeholder="Enter new player name" />
+    <button onclick="addPlayer()">Add Player</button>
+  </section>
   <h2>📊 Historical Summary</h2>
 <table border="1" id="historical-summary">
   <thead>
@@ -101,6 +106,10 @@
     let players = JSON.parse(localStorage.getItem("players")) || ["Akash", "Negi", "Prem"];
     let debts = JSON.parse(localStorage.getItem("debts")) || {};
     let logs = JSON.parse(localStorage.getItem("logs")) || [];
+
+    let currentGame = JSON.parse(localStorage.getItem("currentGame")) || 1;
+    let gameStartTime = JSON.parse(localStorage.getItem("gameStartTime")) || Date.now();
+    let gameTimerInterval;
 
     players.forEach(p => {
       debts[p] = debts[p] || {};
@@ -142,9 +151,11 @@
     
     function nextGame() {
   currentGame++;
+  gameStartTime = Date.now(); // reset start time
   saveAll();
   alert("Started Game " + currentGame);
   renderUI();
+  updateGameInfo();
     }
 
     function saveAll() {
@@ -152,6 +163,29 @@
   localStorage.setItem("debts", JSON.stringify(debts));
   localStorage.setItem("logs", JSON.stringify(logs));
   localStorage.setItem("currentGame", JSON.stringify(currentGame));
+  localStorage.setItem("gameStartTime", JSON.stringify(gameStartTime));
+    }
+
+    function updateGameInfo() {
+  document.getElementById("game-number").textContent = currentGame;
+
+  clearInterval(gameTimerInterval);
+  const timerEl = document.getElementById("game-timer");
+
+  function tick() {
+    const elapsed = Math.floor((Date.now() - gameStartTime) / 1000);
+    const h = Math.floor(elapsed / 3600);
+    const m = Math.floor((elapsed % 3600) / 60);
+    const s = elapsed % 60;
+
+    timerEl.textContent =
+      (h > 0 ? `${h}h ` : "") +
+      (m > 0 ? `${m}m ` : "") +
+      `${s}s`;
+  }
+
+  tick(); // initial call
+  gameTimerInterval = setInterval(tick, 1000);
     }
 
     function addPlayer() {
@@ -589,6 +623,7 @@ logBody.innerHTML = Object.keys(grouped).sort((a,b) => b - a).map(gameNum => {
     window.onload = () => {
       renderUI();
       fetchSheetData();
+      updateGameInfo();
     };
 
     window.onbeforeunload = function(e) {
