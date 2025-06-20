@@ -37,6 +37,7 @@
     <tbody></tbody>
   </table>
 <h2>📊 Current Session Summary</h2>
+  <button onclick="copySessionSummary()">📋 Copy to Clipboard</button>
 <table border="1" id="session-summary">
   <thead>
     <tr>
@@ -108,6 +109,37 @@
       });
     });
 
+
+    function copySessionSummary() {
+  const rows = document.querySelectorAll("#session-summary tbody tr");
+  if (!rows.length) return alert("No session summary to copy.");
+
+  const now = new Date();
+  const timeString = now.toLocaleString(); // human-readable timestamp
+
+  let copyData = "";
+
+  rows.forEach(row => {
+    const cells = row.querySelectorAll("td");
+    if (cells.length !== 3) return;
+
+    const from = cells[0].textContent.trim();
+    const to = cells[1].textContent.trim();
+    const amount = cells[2].textContent.trim();
+
+    copyData += `${timeString}\t${from}\t${to}\t${amount}\n`;
+  });
+
+  navigator.clipboard.writeText(copyData).then(() => {
+    alert("Copied to clipboard. Redirecting to Google Sheet...");
+    window.location.href = "https://docs.google.com/spreadsheets/d/1UKp4hyPzIPAi1eQPRWaNB4Qvl-f69x6Im50BLj6pevY/edit?usp=drivesdk";
+  }).catch(err => {
+    alert("Failed to copy: " + err);
+  });
+    }
+
+    
+    
     function nextGame() {
   currentGame++;
   saveAll();
