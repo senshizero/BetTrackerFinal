@@ -250,6 +250,12 @@
         <div id="status" class="status loading">Connecting to Firebase...</div>
 
         <div class="section">
+            <h2>🔧 Debug Tools</h2>
+            <button onclick="testConnection()" style="background: #28a745; margin-bottom: 10px;">Test Firebase Connection</button>
+            <button onclick="showDebugInfo()" style="background: #17a2b8;">Show Debug Info</button>
+        </div>
+
+        <div class="section">
             <h2>👥 Players</h2>
             <div class="form-group">
                 <label for="playerName">Add New Player:</label>
@@ -318,10 +324,24 @@
             appId: "1:677802256822:web:65f6d6fcfa8fdb8825f917"
         };
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
-        const sessionRef = ref(database, 'sessionData');
+        // Initialize Firebase with detailed logging
+        console.log('Initializing Firebase with config:', firebaseConfig);
+        
+        let app, database, sessionRef;
+        
+        try {
+            app = initializeApp(firebaseConfig);
+            console.log('Firebase app initialized successfully');
+            
+            database = getDatabase(app);
+            console.log('Firebase database initialized successfully');
+            
+            sessionRef = ref(database, 'sessionData');
+            console.log('Firebase reference created successfully');
+        } catch (error) {
+            console.error('Firebase initialization failed:', error);
+            showStatus('Firebase initialization failed: ' + error.message, 'error');
+        }
 
         // Global variables
         let sessionData = {
@@ -331,18 +351,35 @@
             currentGame: 1
         };
 
-        // Initialize the app
+        // Initialize the app with comprehensive error checking
         function initializeApp() {
             showStatus('Connecting to Firebase...', 'loading');
+            console.log('Starting Firebase connection...');
+            
+            // Check if Firebase was initialized properly
+            if (!sessionRef) {
+                showStatus('Firebase not initialized properly', 'error');
+                console.error('sessionRef is not defined');
+                return;
+            }
             
             try {
-                // Listen for data changes
+                console.log('Setting up Firebase listener...');
+                
+                // Test connection first
                 onValue(sessionRef, (snapshot) => {
                     try {
+                        console.log('Firebase listener triggered');
+                        console.log('Snapshot exists:', snapshot.exists());
+                        
                         const data = snapshot.val();
+                        console.log('Data received:', data);
+                        
                         if (data) {
                             sessionData = data;
+                            console.log('Using existing data from Firebase');
                         } else {
+                            console.log('No data found, initializing default data');
                             // Initialize with default data if none exists
                             sessionData = {
                                 players: [],
@@ -350,22 +387,43 @@
                                 logs: {},
                                 currentGame: 1
                             };
+                            console.log('Saving default data to Firebase...');
                             saveToFirebase();
                         }
                         updateUI();
-                        showStatus('Connected to Firebase', 'success');
-                        setTimeout(() => hideStatus(), 2000);
+                        showStatus('Successfully connected to Firebase!', 'success');
+                        setTimeout(() => hideStatus(), 3000);
                     } catch (error) {
                         console.error('Error processing Firebase data:', error);
                         showStatus('Error processing data: ' + error.message, 'error');
                     }
                 }, (error) => {
-                    console.error('Firebase connection error:', error);
-                    showStatus('Firebase connection failed: ' + error.message, 'error');
+                    console.error('Firebase listener error:', error);
+                    console.error('Error code:', error.code);
+                    console.error('Error message:', error.message);
+                    
+                    let errorMessage = 'Firebase connection failed: ';
+                    switch(error.code) {
+                        case 'PERMISSION_DENIED':
+                            errorMessage += 'Permission denied. Check your Firebase security rules.';
+                            break;
+                        case 'NETWORK_ERROR':
+                            errorMessage += 'Network error. Check your internet connection.';
+                            break;
+                        case 'INVALID_URL':
+                            errorMessage += 'Invalid database URL.';
+                            break;
+                        default:
+                            errorMessage += error.message;
+                    }
+                    showStatus(errorMessage, 'error');
                 });
+                
+                console.log('Firebase listener setup complete');
+                
             } catch (error) {
-                console.error('Firebase initialization error:', error);
-                showStatus('Firebase initialization failed: ' + error.message, 'error');
+                console.error('Error setting up Firebase listener:', error);
+                showStatus('Error setting up Firebase connection: ' + error.message, 'error');
             }
         }
 
@@ -375,6 +433,8 @@
                 console.error('No session data to save');
                 return;
             }
+            
+            console.log('Attempting to save data to Firebase:', sessionData);
             
             set(sessionRef, sessionData)
                 .then(() => {
@@ -618,4 +678,116 @@
         // Display logs
         window.displayLogs = function() {
             const logsDiv = document.getElementById('logsDisplay');
-            co
+            const gameFilter = document.getElementById('gameFilter').value;
+            logsDiv.innerHTML = '';
+
+            const sortedLogs = Object.keys(sessionData.logs).sort((a, b) => {
+                return new Date(sessionData.logs[b].time) - new Date(sessionData.logs[a].time);
+            });
+
+            sortedLogs.forEach(logId => {
+                const log = sessionData.logs[logId];
+                
+                if (gameFilter !== 'all' && log.game !== parseInt(gameFilter)) {
+                    return;
+                }
+
+                const logItem = document.createElement('div');
+                logItem.className = `log-item ${log.deleted ? 'deleted' : ''}`;
+                
+                const date = new Date(log.time);
+                const timeString = date.toLocaleString();
+                
+                logItem.innerHTML = `
+                    <div class="log-details">
+                        <div class="log-time">${timeString}</div>
+                        <div class="log-transaction">
+                            ${log.from} → ${log.to}: ₹${log.amount.toFixed(2)}
+                            ${log.deleted ? ' (DELETED)' : ''}
+                        </div>
+                        <div class="log-game">Game ${log.game}</div>
+                    </div>
+                    ${!log.deleted ? `<button class="delete-btn" onclick="deleteTransaction('${logId}')">Delete</button>` : ''}
+                `;
+                
+                logsDiv.appendChild(logItem);
+            });
+
+            if (logsDiv.innerHTML === '') {
+                logsDiv.innerHTML = '<div class="log-item"><div class="log-details">No transactions found</div></div>';
+            }
+        }
+
+        // Update game filter dropdown
+        function updateGameFilter() {
+            const gameFilter = document.getElementById('gameFilter');
+            const currentFilter = gameFilter.value;
+            
+            gameFilter.innerHTML = '<option value="all">All Games</option>';
+
+            const games = new Set();
+            Object.values(sessionData.logs).forEach(log => {
+                games.add(log.game);
+            });
+
+            Array.from(games).sort((a, b) => b - a).forEach(game => {
+                gameFilter.innerHTML += `<option value="${game}">Game ${game}</option>`;
+            });
+
+            gameFilter.value = currentFilter;
+        }
+
+        // Test Firebase connection function
+        window.testConnection = function() {
+            console.log('Testing Firebase connection manually...');
+            showStatus('Testing connection...', 'loading');
+            
+            try {
+                // Try to write a test value
+                const testRef = ref(database, 'connectionTest');
+                set(testRef, {
+                    timestamp: Date.now(),
+                    message: 'Connection test'
+                }).then(() => {
+                    console.log('Test write successful');
+                    showStatus('Firebase write test successful!', 'success');
+                    
+                    // Try to read it back
+                    onValue(testRef, (snapshot) => {
+                        const data = snapshot.val();
+                        console.log('Test read result:', data);
+                        if (data) {
+                            showStatus('Firebase read/write test successful!', 'success');
+                        }
+                    }, { onlyOnce: true });
+                    
+                }).catch((error) => {
+                    console.error('Test write failed:', error);
+                    showStatus('Firebase write test failed: ' + error.message, 'error');
+                });
+                
+            } catch (error) {
+                console.error('Connection test error:', error);
+                showStatus('Connection test error: ' + error.message, 'error');
+            }
+        }
+
+        // Debug info function
+        window.showDebugInfo = function() {
+            console.log('=== FIREBASE DEBUG INFO ===');
+            console.log('Firebase Config:', firebaseConfig);
+            console.log('App initialized:', !!app);
+            console.log('Database initialized:', !!database);
+            console.log('Session ref initialized:', !!sessionRef);
+            console.log('Current session data:', sessionData);
+            console.log('User agent:', navigator.userAgent);
+            console.log('Online status:', navigator.onLine);
+            
+            alert('Debug info logged to console. Press F12 to view.');
+        }
+
+        // Initialize the application
+        initializeApp();
+    </script>
+</body>
+</html>
