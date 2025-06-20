@@ -15,7 +15,7 @@
     <input id="player-name" placeholder="Enter new player name" />
     <button onclick="addPlayer()">Add Player</button>
   </section>
-
+  <button onclick="nextGame()">➕ Next Game</button>
   <section id="transaction">
     <label for="winner">Winner:</label>
     <select id="winner"></select>
@@ -69,6 +69,8 @@
   <a href="https://docs.google.com/spreadsheets/d/1UKp4hyPzIPAi1eQPRWaNB4Qvl-f69x6Im50BLj6pevY/edit?usp=drivesdk">Go to Sheet ↗️</a>
 
   <script>
+    let currentGame = JSON.parse(localStorage.getItem("currentGame")) || 1;
+    
     const PIN = "9211";
     const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTwHNRhIUYXAfSuBKkk6eZG0fkT4F4oGLwKHUBilhUjc2j7-QhEGbfqEy10XTygJ7XloSUhTgE6EABG/pub?output=csv";
     const SHEET_POST_URL = "https://script.google.com/macros/s/AKfycbxVroFD44BF62p2lIHKFornNhLmkIg6gnvqMuDt-zlQeSCO8cGGccriIAEkFIWtd4Tozg/exec";
@@ -84,10 +86,18 @@
       });
     });
 
+    function nextGame() {
+  currentGame++;
+  saveAll();
+  alert("Started Game " + currentGame);
+  renderUI();
+    }
+
     function saveAll() {
-      localStorage.setItem("players", JSON.stringify(players));
-      localStorage.setItem("debts", JSON.stringify(debts));
-      localStorage.setItem("logs", JSON.stringify(logs));
+  localStorage.setItem("players", JSON.stringify(players));
+  localStorage.setItem("debts", JSON.stringify(debts));
+  localStorage.setItem("logs", JSON.stringify(logs));
+  localStorage.setItem("currentGame", JSON.stringify(currentGame));
     }
 
     function addPlayer() {
@@ -173,19 +183,29 @@ const balanceRow = `<tr><td><strong>Net Balance</strong></td>` +
 
 debtBody.innerHTML = tableRows.join("") + balanceRow;
 
-      logBody.innerHTML = logs.slice().reverse().map((log, displayIndex) => {
-  const realIndex = logs.length - 1 - displayIndex;
-  const isDeleted = log.deleted;
+      let grouped = {};
 
-  return `<tr style="${isDeleted ? 'text-decoration: line-through; opacity: 0.5;' : ''}">
-    <td>${new Date(log.time).toLocaleString()}</td>
-    <td>${log.loser}</td>
-    <td>${log.winner}</td>
-    <td>₹${log.amount}</td>
-    <td>
-      ${isDeleted ? '—' : `<button onclick="deleteTransaction(${realIndex})">❌ Delete</button>`}
-    </td>
-  </tr>`;
+logs.forEach((log, i) => {
+  const game = log.game || 1;
+  grouped[game] = grouped[game] || [];
+  grouped[game].push({ ...log, index: i });
+});
+
+logBody.innerHTML = Object.keys(grouped).sort((a,b) => b - a).map(gameNum => {
+  const rows = grouped[gameNum].map(log => {
+    const isDeleted = log.deleted;
+    return `<tr style="${isDeleted ? 'text-decoration: line-through; opacity: 0.5;' : ''}">
+      <td>${new Date(log.time).toLocaleString()}</td>
+      <td>${log.loser}</td>
+      <td>${log.winner}</td>
+      <td>₹${log.amount}</td>
+      <td>
+        ${isDeleted ? '—' : `<button onclick="deleteTransaction(${log.index})">❌ Delete</button>`}
+      </td>
+    </tr>`;
+  }).join("");
+
+  return `<tr><td colspan="5" style="background: #dfe6e9; font-weight: bold; text-align: left;">🎮 Game ${gameNum}</td></tr>` + rows;
 }).join("");
       saveAll();
     }
@@ -282,7 +302,7 @@ debtBody.innerHTML = tableRows.join("") + balanceRow;
   rebalanceDebts();          // Step 1: net direct balances
   optimizeTriangularDebts(); // Step 2: collapse chain debts
 
-  logs.push({ winner, loser, amount, time: Date.now() });
+  logs.push({ winner, loser, amount, time: Date.now(), game: currentGame });
   saveAll();
   renderUI();
   document.getElementById("amount").value = "";
