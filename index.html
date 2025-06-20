@@ -9,6 +9,20 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
 </head>
 <body>
+  <div id="player-select-screen" style="display: none;">
+  <h2>Select Players for This Session</h2>
+  <form id="player-select-form">
+    <label><input type="checkbox" name="players" value="Akash"> Akash</label><br>
+    <label><input type="checkbox" name="players" value="Negi"> Negi</label><br>
+    <label><input type="checkbox" name="players" value="Prem"> Prem</label><br>
+    <label><input type="checkbox" name="players" value="Aabu"> Aabu</label><br><br>
+    <button type="submit">Start Game</button>
+  </form>
+</div>
+
+<div id="main-app" style="display: none;">
+  <!-- EXISTING HTML GOES HERE -->
+
   <h1>🎲 Bet Tracker</h1>
 
   <section id="add-player">
@@ -67,6 +81,7 @@
 
   <br />
   <a href="https://docs.google.com/spreadsheets/d/1UKp4hyPzIPAi1eQPRWaNB4Qvl-f69x6Im50BLj6pevY/edit?usp=drivesdk">Go to Sheet ↗️</a>
+</div>
 
   <script>
     let currentGame = JSON.parse(localStorage.getItem("currentGame")) || 1;
@@ -75,7 +90,12 @@
     const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTwHNRhIUYXAfSuBKkk6eZG0fkT4F4oGLwKHUBilhUjc2j7-QhEGbfqEy10XTygJ7XloSUhTgE6EABG/pub?output=csv";
     const SHEET_POST_URL = "https://script.google.com/macros/s/AKfycbxVroFD44BF62p2lIHKFornNhLmkIg6gnvqMuDt-zlQeSCO8cGGccriIAEkFIWtd4Tozg/exec";
 
-    let players = JSON.parse(localStorage.getItem("players")) || ["Akash", "Negi", "Aabu", "Prem"];
+
+    let players = JSON.parse(localStorage.getItem("players"));
+    const DEFAULT_PLAYERS = ["Akash", "Negi", "Prem", "Aabu"];
+    let debts = JSON.parse(localStorage.getItem("debts")) || {};
+    let logs = JSON.parse(localStorage.getItem("logs")) || [];
+    let currentGame = JSON.parse(localStorage.getItem("currentGame")) || 1;
     let debts = JSON.parse(localStorage.getItem("debts")) || {};
     let logs = JSON.parse(localStorage.getItem("logs")) || [];
 
@@ -327,9 +347,42 @@ logBody.innerHTML = Object.keys(grouped).sort((a,b) => b - a).map(gameNum => {
     }
 
     window.onload = () => {
-      renderUI();
-      fetchSheetData();
-    };
+  if (!players) {
+    // First time load — show player selection screen
+    document.getElementById("player-select-screen").style.display = "block";
+  } else {
+    document.getElementById("main-app").style.display = "block";
+    renderUI();
+    fetchSheetData();
+  }
+};
+
+    document.getElementById("player-select-form").addEventListener("submit", function(e) {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const selected = formData.getAll("players");
+
+  if (selected.length < 2) {
+    alert("Please select at least 2 players.");
+    return;
+  }
+
+  players = selected;
+  players.forEach(p => {
+    debts[p] = debts[p] || {};
+    players.forEach(q => {
+      if (p !== q) debts[p][q] = debts[p][q] || 0;
+    });
+  });
+
+  saveAll();
+
+  document.getElementById("player-select-screen").style.display = "none";
+  document.getElementById("main-app").style.display = "block";
+
+  renderUI();
+  fetchSheetData();
+});
 
     window.onbeforeunload = function(e) {
       e.preventDefault();
