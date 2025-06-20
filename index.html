@@ -51,7 +51,18 @@
     <tbody></tbody>
   </table>
 
-
+  <h2>📊 Historical Summary</h2>
+<table border="1" id="historical-summary">
+  <thead>
+    <tr>
+      <th>Player</th>
+      <th>Net Balance (₹)</th>
+      <th>Total Debt (₹)</th>
+      <th>Owes To</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
 
   <h2>📜 Historical Records (from Google Sheet)</h2>
   <table border="1" id="history-table">
@@ -323,6 +334,48 @@ logBody.innerHTML = Object.keys(grouped).sort((a,b) => b - a).map(gameNum => {
               <td>${row.Amount}</td>
             </tr>`;
           }).join("");
+          const summary = {};
+const owesMap = {};
+
+// Build summary from historical records
+results.data.forEach(row => {
+  const from = row.From?.trim();
+  const to = row.To?.trim();
+  const amount = parseFloat(row.Amount);
+
+  if (!from || !to || isNaN(amount)) return;
+
+  summary[from] = summary[from] || { in: 0, out: 0 };
+  summary[to] = summary[to] || { in: 0, out: 0 };
+
+  summary[from].out += amount;
+  summary[to].in += amount;
+
+  // Track individual debts
+  owesMap[from] = owesMap[from] || {};
+  owesMap[from][to] = (owesMap[from][to] || 0) + amount;
+});
+
+// Render summary table
+const summaryBody = document.querySelector("#historical-summary tbody");
+
+summaryBody.innerHTML = Object.keys(summary).map(player => {
+  const net = +(summary[player].in - summary[player].out).toFixed(2);
+  const owes = owesMap[player] || {};
+  const debtList = Object.entries(owes).map(([to, amt]) => `${to} (₹${amt})`).join(", ");
+
+  const bgColor = net > 0 ? "#d4edda" : net < 0 ? "#f8d7da" : "transparent";
+  const color = net > 0 ? "#155724" : net < 0 ? "#721c24" : "#333";
+
+  return `<tr>
+    <td>${player}</td>
+    <td style="background-color: ${bgColor}; color: ${color}; font-weight: bold;">
+      ${net > 0 ? '+' : net < 0 ? '-' : ''}₹${Math.abs(net)}
+    </td>
+    <td>₹${summary[player].out.toFixed(2)}</td>
+    <td>${debtList || '—'}</td>
+  </tr>`;
+}).join("");
         }
       });
     }
