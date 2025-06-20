@@ -175,15 +175,16 @@ const balanceRow = `<tr><td><strong>Net Balance</strong></td>` +
 
 debtBody.innerHTML = tableRows.join("") + balanceRow;
 
-      logBody.innerHTML = logs.map((log, idx) => {
+      logBody.innerHTML = logs.slice().reverse().map((log, displayIndex) => {
+  const realIndex = logs.length - 1 - displayIndex;
   return `<tr>
     <td>${new Date(log.time).toLocaleString()}</td>
     <td>${log.loser}</td>
     <td>${log.winner}</td>
     <td>₹${log.amount}</td>
-    <td><button onclick="deleteTransaction(${logs.length - 1 - idx})">❌ Delete</button></td>
+    <td><button onclick="deleteTransaction(${realIndex})">❌ Delete</button></td>
   </tr>`;
-}).reverse().join("");
+   }).join("");
       saveAll();
     }
 
