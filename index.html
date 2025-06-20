@@ -201,6 +201,10 @@
   }
 
   // Transitive debt optimization
+  let changed = true;
+while (changed) {
+  changed = false;
+
   for (let i = 0; i < arr.length; i++) {
     for (let j = 0; j < arr.length; j++) {
       for (let k = 0; k < arr.length; k++) {
@@ -218,10 +222,13 @@
 
           if (sessionDebts[A][B] < 0.01) sessionDebts[A][B] = 0;
           if (sessionDebts[B][C] < 0.01) sessionDebts[B][C] = 0;
+
+          changed = true; // something collapsed, keep optimizing
         }
       }
     }
   }
+}
 
   // Render flat "From / To / Amount" rows
   const summaryBody = document.querySelector("#session-summary tbody");
