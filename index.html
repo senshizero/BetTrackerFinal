@@ -113,16 +113,14 @@
   }
 
   const tx = logs[index];
-  if (!tx) return alert("Transaction not found.");
+  if (!tx || tx.deleted) return alert("Transaction not found or already deleted.");
 
-  // Reverse the transaction
-  debts[tx.loser][tx.winner] -= tx.amount;
-  if (debts[tx.loser][tx.winner] < 0.01) debts[tx.loser][tx.winner] = 0;
+  // Perform reverse transaction
+  debts[tx.winner][tx.loser] += tx.amount;
 
-  // Remove transaction from log
-  logs.splice(index, 1);
+  // Mark as deleted
+  logs[index].deleted = true;
 
-  // Rebalance everything
   rebalanceDebts();
   optimizeTriangularDebts();
   saveAll();
@@ -177,14 +175,18 @@ debtBody.innerHTML = tableRows.join("") + balanceRow;
 
       logBody.innerHTML = logs.slice().reverse().map((log, displayIndex) => {
   const realIndex = logs.length - 1 - displayIndex;
-  return `<tr>
+  const isDeleted = log.deleted;
+
+  return `<tr style="${isDeleted ? 'text-decoration: line-through; opacity: 0.5;' : ''}">
     <td>${new Date(log.time).toLocaleString()}</td>
     <td>${log.loser}</td>
     <td>${log.winner}</td>
     <td>₹${log.amount}</td>
-    <td><button onclick="deleteTransaction(${realIndex})">❌ Delete</button></td>
+    <td>
+      ${isDeleted ? '—' : `<button onclick="deleteTransaction(${realIndex})">❌ Delete</button>`}
+    </td>
   </tr>`;
-   }).join("");
+}).join("");
       saveAll();
     }
 
