@@ -321,63 +321,131 @@ logBody.innerHTML = Object.keys(grouped).sort((a,b) => b - a).map(gameNum => {
   }
     
     function fetchSheetData() {
-      Papa.parse(SHEET_URL, {
-        download: true,
-        header: true,
-        complete: function(results) {
-          const historyTable = document.querySelector("#history-table tbody");
-          historyTable.innerHTML = results.data.map(row => {
-            return `<tr>
-              <td>${row.Time}</td>
-              <td>${row.From}</td>
-              <td>${row.To}</td>
-              <td>${row.Amount}</td>
-            </tr>`;
-          }).join("");
-          const summary = {};
-const owesMap = {};
+  Papa.parse(SHEET_URL, {
+    download: true,
+    header: true,
+    complete: function(results) {
+      // Populate history table
+      const historyTable = document.querySelector("#history-table tbody");
+      historyTable.innerHTML = results.data.map(row => {
+        return `<tr>
+          <td>${row.Time}</td>
+          <td>${row.From}</td>
+          <td>${row.To}</td>
+          <td>${row.Amount}</td>
+        </tr>`;
+      }).join("");
 
-// Build summary from historical records
-results.data.forEach(row => {
-  const from = row.From?.trim();
-  const to = row.To?.trim();
-  const amount = parseFloat(row.Amount);
+      // STEP 1: Build debts matrix
+      const histPlayers = new Set();
+      const histDebts = {};
 
-  if (!from || !to || isNaN(amount)) return;
+      results.data.forEach(row => {
+        const from = row.From?.trim();
+        const to = row.To?.trim();
+        const amount = parseFloat(row.Amount);
 
-  summary[from] = summary[from] || { in: 0, out: 0 };
-  summary[to] = summary[to] || { in: 0, out: 0 };
+        if (!from || !to || isNaN(amount)) return;
 
-  summary[from].out += amount;
-  summary[to].in += amount;
+        histPlayers.add(from);
+        histPlayers.add(to);
 
-  // Track individual debts
-  owesMap[from] = owesMap[from] || {};
-  owesMap[from][to] = (owesMap[from][to] || 0) + amount;
-});
+        histDebts[from] = histDebts[from] || {};
+        histDebts[to] = histDebts[to] || {};
 
-// Render summary table
-const summaryBody = document.querySelector("#historical-summary tbody");
-
-summaryBody.innerHTML = Object.keys(summary).map(player => {
-  const net = +(summary[player].in - summary[player].out).toFixed(2);
-  const owes = owesMap[player] || {};
-  const debtList = Object.entries(owes).map(([to, amt]) => `${to} (₹${amt})`).join(", ");
-
-  const bgColor = net > 0 ? "#d4edda" : net < 0 ? "#f8d7da" : "transparent";
-  const color = net > 0 ? "#155724" : net < 0 ? "#721c24" : "#333";
-
-  return `<tr>
-    <td>${player}</td>
-    <td style="background-color: ${bgColor}; color: ${color}; font-weight: bold;">
-      ${net > 0 ? '+' : net < 0 ? '-' : ''}₹${Math.abs(net)}
-    </td>
-    <td>₹${summary[player].out.toFixed(2)}</td>
-    <td>${debtList || '—'}</td>
-  </tr>`;
-}).join("");
-        }
+        histDebts[from][to] = (histDebts[from][to] || 0) + amount;
       });
+
+      const playersArr = Array.from(histPlayers);
+
+      // STEP 2: Rebalance direct debts
+      for (let i = 0; i < playersArr.length; i++) {
+        for (let j = 0; j < playersArr.length; j++) {
+          if (i === j) continue;
+          const A = playersArr[i];
+          const B = playersArr[j];
+
+          const ab = histDebts[A][B] || 0;
+          const ba = histDebts[B][A] || 0;
+
+          if (ab > ba) {
+            histDebts[A][B] = +(ab - ba).toFixed(2);
+            histDebts[B][A] = 0;
+          } else {
+            histDebts[B][A] = +(ba - ab).toFixed(2);
+            histDebts[A][B] = 0;
+          }
+        }
+      }
+
+      // STEP 3: Apply transitive optimization
+      for (let i = 0; i < playersArr.length; i++) {
+        for (let j = 0; j < playersArr.length; j++) {
+          for (let k = 0; k < playersArr.length; k++) {
+            if (i === j || j === k || i === k) continue;
+
+            const A = playersArr[i];
+            const B = playersArr[j];
+            const C = playersArr[k];
+
+            const ab = histDebts[A][B] || 0;
+            const bc = histDebts[B][C] || 0;
+
+            if (ab > 0 && bc > 0) {
+              const transfer = Math.min(ab, bc);
+              histDebts[A][B] -= transfer;
+              histDebts[B][C] -= transfer;
+              histDebts[A][C] = (histDebts[A][C] || 0) + transfer;
+
+              if (histDebts[A][B] < 0.01) histDebts[A][B] = 0;
+              if (histDebts[B][C] < 0.01) histDebts[B][C] = 0;
+            }
+          }
+        }
+      }
+
+      // STEP 4: Calculate net summary
+      const netSummary = {};
+      const owesMap = {};
+
+      playersArr.forEach(p => {
+        netSummary[p] = { in: 0, out: 0 };
+        owesMap[p] = {};
+      });
+
+      playersArr.forEach(from => {
+        playersArr.forEach(to => {
+          if (from === to) return;
+          const amt = histDebts[from][to] || 0;
+          if (amt > 0) {
+            netSummary[from].out += amt;
+            netSummary[to].in += amt;
+            owesMap[from][to] = amt;
+          }
+        });
+      });
+
+      // STEP 5: Render
+      const summaryBody = document.querySelector("#historical-summary tbody");
+      summaryBody.innerHTML = playersArr.map(player => {
+        const net = +(netSummary[player].in - netSummary[player].out).toFixed(2);
+        const owes = owesMap[player] || {};
+        const debtList = Object.entries(owes).map(([to, amt]) => `${to} (₹${amt})`).join(", ");
+
+        const bgColor = net > 0 ? "#d4edda" : net < 0 ? "#f8d7da" : "transparent";
+        const color = net > 0 ? "#155724" : net < 0 ? "#721c24" : "#333";
+
+        return `<tr>
+          <td>${player}</td>
+          <td style="background-color: ${bgColor}; color: ${color}; font-weight: bold;">
+            ${net === 0 ? '₹0' : `${net > 0 ? '+' : '-'}₹${Math.abs(net)}`}
+          </td>
+          <td>₹${netSummary[player].out.toFixed(2)}</td>
+          <td>${debtList || '—'}</td>
+        </tr>`;
+      }).join("");
+    }
+  });
     }
 
     window.onload = () => {
