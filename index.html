@@ -139,7 +139,12 @@ let balances = players.map(player => {
 
 // Add summary row
 const balanceRow = `<tr><td><strong>Net Balance</strong></td>` +
-  balances.map(b => `<td><strong>${b.net === 0 ? '0' : `${b.sign}₹${Math.abs(b.net)}`}</strong></td>`).join("") +
+  balances.map(b => {
+    let bgColor = b.net > 0 ? "#d4edda" : b.net < 0 ? "#f8d7da" : "transparent";
+    let color = b.net > 0 ? "#155724" : b.net < 0 ? "#721c24" : "#333";
+    let display = b.net === 0 ? "0" : `${b.sign}₹${Math.abs(b.net)}`;
+    return `<td style="background-color: ${bgColor}; color: ${color}; font-weight: bold;">${display}</td>`;
+  }).join("") +
   `</tr>`;
 
 debtBody.innerHTML = tableRows.join("") + balanceRow;
