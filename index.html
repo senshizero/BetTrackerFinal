@@ -26,7 +26,7 @@
     <input id="amount" type="number" placeholder="Enter amount ₹" />
     <button onclick="addTransaction()">Record Transaction</button>
   </section>
-
+  
   <h2>💳 Debt Table</h2>
   <table id="debt-table" border="1">
     <thead>
@@ -36,7 +36,17 @@
     </thead>
     <tbody></tbody>
   </table>
-
+<h2>📊 Current Session Summary</h2>
+<table border="1" id="session-summary">
+  <thead>
+    <tr>
+      <th>From</th>
+      <th>To</th>
+      <th>Amount (₹)</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
   <h2>📝 Transaction Log</h2>
   <table border="1" id="log-table">
     <thead>
@@ -149,6 +159,94 @@
   renderUI();
     }
 
+
+    function renderSessionSummary() {
+  const sessionDebts = {};
+  const sessionPlayers = new Set();
+
+  logs.forEach(log => {
+    if (log.deleted) return;
+
+    const from = log.loser;
+    const to = log.winner;
+    const amount = log.amount;
+
+    sessionPlayers.add(from);
+    sessionPlayers.add(to);
+
+    sessionDebts[from] = sessionDebts[from] || {};
+    sessionDebts[to] = sessionDebts[to] || {};
+
+    sessionDebts[from][to] = (sessionDebts[from][to] || 0) + amount;
+  });
+
+  const arr = Array.from(sessionPlayers);
+
+  // Rebalance
+  for (let i = 0; i < arr.length; i++) {
+    for (let j = 0; j < arr.length; j++) {
+      if (i === j) continue;
+      const A = arr[i], B = arr[j];
+      const ab = sessionDebts[A]?.[B] || 0;
+      const ba = sessionDebts[B]?.[A] || 0;
+
+      if (ab > ba) {
+        sessionDebts[A][B] = +(ab - ba).toFixed(2);
+        sessionDebts[B][A] = 0;
+      } else {
+        sessionDebts[B][A] = +(ba - ab).toFixed(2);
+        sessionDebts[A][B] = 0;
+      }
+    }
+  }
+
+  // Transitive debt optimization
+  for (let i = 0; i < arr.length; i++) {
+    for (let j = 0; j < arr.length; j++) {
+      for (let k = 0; k < arr.length; k++) {
+        if (i === j || j === k || i === k) continue;
+
+        const A = arr[i], B = arr[j], C = arr[k];
+        const ab = sessionDebts[A]?.[B] || 0;
+        const bc = sessionDebts[B]?.[C] || 0;
+
+        if (ab > 0 && bc > 0) {
+          const transfer = Math.min(ab, bc);
+          sessionDebts[A][B] -= transfer;
+          sessionDebts[B][C] -= transfer;
+          sessionDebts[A][C] = (sessionDebts[A][C] || 0) + transfer;
+
+          if (sessionDebts[A][B] < 0.01) sessionDebts[A][B] = 0;
+          if (sessionDebts[B][C] < 0.01) sessionDebts[B][C] = 0;
+        }
+      }
+    }
+  }
+
+  // Render flat "From / To / Amount" rows
+  const summaryBody = document.querySelector("#session-summary tbody");
+
+  const rows = [];
+
+  arr.forEach(from => {
+    arr.forEach(to => {
+      if (from === to) return;
+      const amt = +(sessionDebts[from]?.[to] || 0);
+      if (amt > 0.01) {
+        rows.push(`<tr>
+          <td>${from}</td>
+          <td>${to}</td>
+          <td>₹${amt.toFixed(2)}</td>
+        </tr>`);
+      }
+    });
+  });
+
+  summaryBody.innerHTML = rows.length > 0
+    ? rows.join("")
+    : `<tr><td colspan="3">No debts recorded in this session.</td></tr>`;
+    }
+
     
     function renderUI() {
       const winSel = document.getElementById("winner");
@@ -220,6 +318,7 @@ logBody.innerHTML = Object.keys(grouped).sort((a,b) => b - a).map(gameNum => {
   return `<tr><td colspan="5" style="background: #dfe6e9; font-weight: bold; text-align: left;">🎮 Game ${gameNum}</td></tr>` + rows;
 }).join("");
       saveAll();
+      renderSessionSummary();
     }
 
     function promptPin(message) {
