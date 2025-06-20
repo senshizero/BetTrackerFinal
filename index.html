@@ -181,8 +181,35 @@
     }
   }
     }
+  function optimizeTriangularDebts() {
+  for (let i = 0; i < players.length; i++) {
+    for (let j = 0; j < players.length; j++) {
+      for (let k = 0; k < players.length; k++) {
+        if (i === j || j === k || i === k) continue;
 
-async function addTransaction() {
+        const A = players[i]; // Prem
+        const B = players[j]; // Akash
+        const C = players[k]; // Negi
+
+        const ab = debts[A][B] || 0; // A → B
+        const bc = debts[B][C] || 0; // B → C
+
+        if (ab > 0 && bc > 0) {
+          const transfer = Math.min(ab, bc);
+          debts[A][B] -= transfer;
+          debts[B][C] -= transfer;
+          debts[A][C] += transfer;
+
+          // Clean near-zero floating point leftovers
+          if (debts[A][B] < 0.01) debts[A][B] = 0;
+          if (debts[B][C] < 0.01) debts[B][C] = 0;
+        }
+      }
+    }
+  }
+  }
+
+  async function addTransaction() {
   const winner = document.getElementById("winner").value;
   const loser = document.getElementById("loser").value;
   const amount = parseFloat(document.getElementById("amount").value);
@@ -197,14 +224,15 @@ async function addTransaction() {
 
   debts[loser][winner] += amount;
 
-  rebalanceDebts(); // 🔄 Balance mutual debts after transaction
+  rebalanceDebts();          // Step 1: net direct balances
+  optimizeTriangularDebts(); // Step 2: collapse chain debts
 
   logs.push({ winner, loser, amount, time: Date.now() });
   saveAll();
   renderUI();
   document.getElementById("amount").value = "";
-}
-
+  }
+    
     function fetchSheetData() {
       Papa.parse(SHEET_URL, {
         download: true,
