@@ -44,6 +44,7 @@
         <th>From</th>
         <th>To</th>
         <th>Amount (₹)</th>
+        <th>Action</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -104,6 +105,31 @@
       document.getElementById("player-name").value = "";
     }
 
+    async function deleteTransaction(index) {
+  const entered = await promptPin("Enter PIN to delete transaction:");
+  if (entered !== PIN) {
+    alert("Wrong PIN");
+    return;
+  }
+
+  const tx = logs[index];
+  if (!tx) return alert("Transaction not found.");
+
+  // Reverse the transaction
+  debts[tx.loser][tx.winner] -= tx.amount;
+  if (debts[tx.loser][tx.winner] < 0.01) debts[tx.loser][tx.winner] = 0;
+
+  // Remove transaction from log
+  logs.splice(index, 1);
+
+  // Rebalance everything
+  rebalanceDebts();
+  optimizeTriangularDebts();
+  saveAll();
+  renderUI();
+    }
+
+    
     function renderUI() {
       const winSel = document.getElementById("winner");
       const loseSel = document.getElementById("loser");
@@ -149,15 +175,15 @@ const balanceRow = `<tr><td><strong>Net Balance</strong></td>` +
 
 debtBody.innerHTML = tableRows.join("") + balanceRow;
 
-      logBody.innerHTML = logs.map(log => {
-        return `<tr>
-          <td>${new Date(log.time).toLocaleString()}</td>
-          <td>${log.loser}</td>
-          <td>${log.winner}</td>
-          <td>₹${log.amount}</td>
-        </tr>`;
-      }).reverse().join("");
-
+      logBody.innerHTML = logs.map((log, idx) => {
+  return `<tr>
+    <td>${new Date(log.time).toLocaleString()}</td>
+    <td>${log.loser}</td>
+    <td>${log.winner}</td>
+    <td>₹${log.amount}</td>
+    <td><button onclick="deleteTransaction(${logs.length - 1 - idx})">❌ Delete</button></td>
+  </tr>`;
+}).reverse().join("");
       saveAll();
     }
 
