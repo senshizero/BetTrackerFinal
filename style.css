@@ -103,33 +103,6 @@ a:hover {
   font-size: 1.05rem;
   color: #2d3436;
 }
-#player-select-screen {
-  background-color: white;
-  padding: 30px;
-  max-width: 400px;
-  margin: 40px auto;
-  border-radius: 10px;
-  box-shadow: 0 0 15px rgba(0,0,0,0.2);
-  text-align: center;
-}
-
-#player-select-screen input[type="checkbox"] {
-  margin-right: 10px;
-}
-
-#player-select-screen button {
-  margin-top: 15px;
-  padding: 10px 20px;
-  background: #2ecc71;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-#player-select-screen button:hover {
-  background: #27ae60;
-}
 
 @media (max-width: 600px) {
   body {
